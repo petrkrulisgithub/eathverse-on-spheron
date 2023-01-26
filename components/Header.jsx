@@ -15,8 +15,6 @@ function Header({ words }) {
   const { signMessageAsync } = useSignMessage();
   const { push } = useRouter();
 
-  console.log(session);
-
   const handleAuth = async () => {
     if (isConnected) {
       await disconnectAsync();

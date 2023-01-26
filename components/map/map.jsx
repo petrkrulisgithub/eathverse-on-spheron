@@ -87,7 +87,7 @@ const Map = () => {
   const [lineBottom, setLineBottom] = useState(0);
   const [lineOpacity, setLineOpacity] = useState(1);
 
-  const [popupOpened, setPopupOpened] = useState(false);
+  const [isPopupOpened, setIsPopupOpened] = useState(false);
 
   const api = what3words();
   api.setApiKey(process.env.NEXT_PUBLIC_API_KEY);
@@ -137,8 +137,6 @@ const Map = () => {
     if (isClaiming) return;
     const el = document.getElementsByClassName(words + GREEN.slice(1))[0];
 
-    console.log("useEffect");
-
     // bug here
     if (el) {
       const rect = el.getBoundingClientRect();
@@ -155,7 +153,7 @@ const Map = () => {
   const finishTracking = () => {
     setIsClaiming(false);
     setClaimed(true);
-    setPopupOpened(true);
+    setIsPopupOpened(true);
   };
 
   if (!hasAccessToLocation || !initialCoords)
@@ -252,11 +250,12 @@ const Map = () => {
               )}
             </div>
           </div>
-          <CameraPopup
-            popupOpened={popupOpened}
-            setPopupOpened={setPopupOpened}
-            chosenSquares={chosenSquares}
-          />
+          {isPopupOpened ? (
+            <CameraPopup
+              setIsOpened={setIsPopupOpened}
+              chosenSquares={chosenSquares}
+            />
+          ) : null}
           <div></div>
         </div>
       </div>
