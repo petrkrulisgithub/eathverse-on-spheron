@@ -1,7 +1,7 @@
 // Note -  There are some bugs in this component at what3words and lealet js itegration part,
 // that needs to be fixed immidiately.
 
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer } from "react-leaflet";
 import React, { useEffect, useState } from "react";
 
 import CameraPopup from "../CameraPopup";
