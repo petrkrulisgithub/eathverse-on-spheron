@@ -5,7 +5,9 @@ import { Camera } from "react-camera-pro";
 import CameraIcon from "../svg/components/CameraIcon";
 import Image from "next/image";
 import UploadIcon from "@mui/icons-material/Upload";
+import { fromString } from "uint8arrays/from-string";
 import { getSession } from "next-auth/react";
+import storeFileToIPFS from "../helpers/storeFileToIPFS";
 
 const errorMessages = {
   noCameraAccessible:
@@ -21,7 +23,8 @@ function CameraPopup({ setIsOpened, chosenSquares }) {
   const camera = useRef(null);
   const [price, setPrice] = useState(0);
   const [imageURL, setImageURL] = useState(null);
-  const [isTaking, setIsTaking] = useState(false);
+  const [imageAvatarURL, setImageAvatarURL] = useState(null);
+  const [isTakingCameraImg, setIsTakingCameraImg] = useState(false);
   const [isSendingData, setIsSendingData] = useState(false);
 
   const capture = () => {
@@ -34,31 +37,59 @@ function CameraPopup({ setIsOpened, chosenSquares }) {
     setIsOpened(false);
   };
 
-  const sendData = async () => {
+  const storeDataToMongoDb = async (
+    ipfsCameraLink,
+    ipfsAvatarLink,
+    ipfs3RandomWordsLink
+  ) => {
     setIsSendingData(true);
-    // SEND DATA HERE
     const session = await getSession();
 
     const data = {
-      user: session.user,
-      chosenSquares: chosenSquares,
-      imageURL: imageURL,
-      price: price,
+      walletAddress: session.user.address,
+      chosenSquares,
+      ipfs3RandomWordsLink,
+      imageURL,
+      ipfsCameraLink,
+      imageAvatarURL: imageAvatarURL.name,
+      ipfsAvatarLink,
+      price,
     };
 
-    // fetch("/api/getData", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify(data),
-    // });
+    await fetch("/api/postData", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+  };
 
-    // CLEANING AFTER SENDING
+  const handleSubmitDialogClick = async () => {
+    //STORE TO IPFS
+    const ipfs3RandomWordsLink = await storeFileToIPFS(chosenSquares.join(" "));
+
+    const data = fromString(imageURL.slice(23), "base64");
+    const ipfsCameraLink = await storeFileToIPFS(data);
+
+    const ipfsAvatarLink = await storeFileToIPFS(imageAvatarURL);
+
+    //STORE TO MONGODB
+    await storeDataToMongoDb(
+      ipfsCameraLink,
+      ipfsAvatarLink,
+      ipfs3RandomWordsLink
+    );
+
     setIsSendingData(false);
     setImageURL(null);
+    setImageAvatarURL(null);
     setPrice(0);
     handlePopupCloseClick();
+  };
+
+  const handleUploadAvatar = (e) => {
+    setImageAvatarURL(e.target.files[0]);
   };
 
   return (
@@ -82,7 +113,7 @@ function CameraPopup({ setIsOpened, chosenSquares }) {
               </div>
             </div>
             <div className="mt-4 sm:pr-8">
-              {isTaking ? (
+              {isTakingCameraImg ? (
                 <div>
                   <div>
                     <Camera
@@ -95,7 +126,7 @@ function CameraPopup({ setIsOpened, chosenSquares }) {
                     <button
                       aria-label="take a photo"
                       onClick={() => {
-                        capture(), setIsTaking(false);
+                        capture(), setIsTakingCameraImg(false);
                       }}
                     >
                       <BlackCameraIcon />
@@ -126,7 +157,6 @@ function CameraPopup({ setIsOpened, chosenSquares }) {
                       </span>
                     </label>
                   </div>
-
                   <div className="flex py-2 px-2">
                     <h1 className="pl-2 pr-10 py-2">Photo:</h1>
                     {imageURL != null ? (
@@ -141,7 +171,7 @@ function CameraPopup({ setIsOpened, chosenSquares }) {
                       </div>
                     ) : (
                       <button
-                        onClick={() => setIsTaking(true)}
+                        onClick={() => setIsTakingCameraImg(true)}
                         className="group relative inline-flex items-center overflow-hidden rounded bg-indigo-600 px-8 py-3 text-white focus:outline-none focus:ring active:bg-indigo-500"
                       >
                         <span className="absolute right-0 translate-x-full transition-transform group-hover:-translate-x-4">
@@ -153,26 +183,50 @@ function CameraPopup({ setIsOpened, chosenSquares }) {
                       </button>
                     )}
                   </div>
-
                   <div className="flex py-2 px-2">
                     <h1 className="pl-2 pr-10 py-2">Avatar:</h1>
-                    <button
-                      onClick={() => setIsTaking(true)}
-                      className="group relative inline-flex items-center overflow-hidden rounded bg-indigo-600 px-8 py-3 text-white focus:outline-none focus:ring active:bg-indigo-500"
-                    >
-                      <span className="absolute right-0 translate-x-full transition-transform group-hover:-translate-x-4">
-                        <UploadIcon />
-                      </span>
-                      <span className="text-sm font-medium transition-all group-hover:mr-4">
-                        Upload Avatar
-                      </span>
-                    </button>
+                    {imageAvatarURL ? (
+                      <div className="ml-3 flex-shrink-0">
+                        <Image
+                          src={URL.createObjectURL(imageAvatarURL)}
+                          alt="claimed land picture"
+                          width={64}
+                          height={64}
+                          className="h-16 w-16 rounded-lg object-cover shadow-sm"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <label
+                          htmlFor="upload-photo"
+                          style={{ cursor: "pointer" }}
+                          className=" group relative inline-flex items-center overflow-hidden rounded bg-indigo-600 px-8 py-3 text-white focus:outline-none focus:ring active:bg-indigo-500"
+                        >
+                          <span className="absolute right-0 translate-x-full transition-transform group-hover:-translate-x-4">
+                            <UploadIcon />
+                          </span>
+                          <span className="text-sm font-medium transition-all group-hover:mr-4">
+                            Upload Avatar
+                          </span>
+                        </label>
+                        <input
+                          type="file"
+                          required
+                          id="upload-photo"
+                          onChange={handleUploadAvatar}
+                        />
+                      </>
+                    )}
                   </div>
+
+                  <button onClick={handleSubmitDialogClick}>TEST</button>
 
                   <div className="flex py-3 px-3">
                     <button
-                      onClick={sendData}
-                      disabled={!imageURL || !price || isSendingData}
+                      disabled={
+                        !imageURL || !price || isSendingData || !imageAvatarURL
+                      }
+                      onClick={handleSubmitDialogClick}
                       className="inline-block rounded bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 p-[2px] hover:text-white focus:outline-none focus:ring active:text-opacity-75"
                     >
                       <span className="block rounded-sm bg-white px-8 py-3 text-sm font-medium hover:bg-transparent">

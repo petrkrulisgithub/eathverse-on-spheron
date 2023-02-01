@@ -24,6 +24,7 @@ NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=*********************************
 MONGODB_URI= "mongodb+srv://username:password@cluster0.jse7ndx.mongodb.net/?retryWrites=true&w=majority"
 
+
 ```
 
 ### Running the website in the development mode

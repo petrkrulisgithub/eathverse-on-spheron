@@ -12,4 +12,9 @@
   height: 100vh;
 }
 
+#upload-photo {
+  position: absolute;
+  opacity: 0;
+  z-index: -1;
+}
 /* Custom Css */

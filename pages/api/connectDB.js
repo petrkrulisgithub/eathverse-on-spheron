@@ -1,17 +1,23 @@
-import clientPromise from '../../helpers/mongodb';
+import clientPromise from "../../helpers/mongodb";
 
 export default async function handler(req, res) {
   const client = await clientPromise;
-  const db = client.db('earthverse');
+  const db = client.db("Earthverse");
+
   switch (req.method) {
-    case 'POST':
-      let bodyObject = JSON.parse(req.body);
-      let myUser = await db.collection('users').insertOne(bodyObject);
-      res.json({ status: 200 });
+    case "POST":
+      const bodyObject = JSON.parse(req.body);
+      const postEarthverse = await db
+        .collection("earthverse")
+        .insertOne(bodyObject);
+      res.json({ status: 200, data: postEarthverse });
       break;
-    case 'GET':
-      const allUsers = await db.collection('users').find({}).toArray();
-      res.json({ status: 200, data: allUsers });
+    case "GET":
+      const getEarthverse = await db
+        .collection("earthverse")
+        .find({})
+        .toArray();
+      res.json({ status: 200, data: getEarthverse });
       break;
   }
 }

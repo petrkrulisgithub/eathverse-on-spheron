@@ -3,75 +3,19 @@
 
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import React, { useEffect, useState } from "react";
-import { drawChosenSquares, drawGrid } from "../../helpers";
 
 import CameraPopup from "../CameraPopup";
+import ChosenSquares from "./ChosenSquares";
+import Grid from "./Grid";
 import Header from "../Header";
 import Loading from "../Loading";
 import { useSession } from "next-auth/react";
 import what3words from "@what3words/api";
 
 const GREEN = "#1ec716";
-const LBLACK = "#443d3d"; //TODO Remove or use it
 const options = {
   enableHighAccuracy: true,
 };
-
-function Grid({ api, setMoveEnd, setLineOpacity }) {
-  const map = useMap();
-
-  useEffect(() => {
-    map.whenReady(() => drawGrid(map, api));
-    map.on("zoomend", function () {
-      setMoveEnd(Math.random());
-      drawGrid(map, api);
-    });
-
-    map.on("dragend", function () {
-      setMoveEnd(Math.random());
-      drawGrid(map, api);
-    });
-
-    map.on("movestart", () => {
-      setLineOpacity(0);
-    });
-  }, [map, api, setMoveEnd, setLineOpacity]);
-
-  return null;
-}
-
-function ChosenSquares({
-  api,
-  chosenSquares,
-  isClaiming,
-  words,
-  setMoveEnd,
-  claimed,
-  moveEnd,
-}) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (chosenSquares.length) {
-      if (!isClaiming && !claimed) {
-        drawChosenSquares(map, api, [words], isClaiming, setMoveEnd);
-      } else {
-        drawChosenSquares(map, api, chosenSquares, isClaiming, setMoveEnd);
-      }
-    }
-  }, [
-    chosenSquares,
-    isClaiming,
-    moveEnd,
-    api,
-    claimed,
-    setMoveEnd,
-    map,
-    words,
-  ]);
-
-  return null;
-}
 
 const Map = () => {
   const { data: session } = useSession();
@@ -92,8 +36,9 @@ const Map = () => {
   const api = what3words();
   api.setApiKey(process.env.NEXT_PUBLIC_API_KEY);
 
+  //TODO Need to be refactor it
   useEffect(() => {
-    if (hasAccessToLocation) return;
+    // if (hasAccessToLocation) return;
 
     const id = navigator.geolocation.watchPosition(
       (position) => {
@@ -113,9 +58,8 @@ const Map = () => {
             })
             .then((res) => {
               setWords(res.words);
-              if (!chosenSquares.includes(res.words)) {
+              if (!chosenSquares.includes(res.words))
                 setChosenSquares([...chosenSquares, res.words]);
-              }
             })
             .catch((err) => {
               setHasAccessToLocation(false);
@@ -131,10 +75,11 @@ const Map = () => {
     );
 
     return () => navigator.geolocation.clearWatch(id);
-  }, [initialCoords, chosenSquares, api, hasAccessToLocation]);
+  }, [api, chosenSquares, hasAccessToLocation, initialCoords]);
 
   useEffect(() => {
     if (isClaiming) return;
+
     const el = document.getElementsByClassName(words + GREEN.slice(1))[0];
 
     // bug here
